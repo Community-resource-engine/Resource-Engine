@@ -70,7 +70,7 @@ function getDeploymentUrl(): string {
     return url;
   }
 
-  return 'https://careconnectaz.com';
+  return 'https://www.careconnectaz.com';
 }
 
 function log(...args: any[]): void {
