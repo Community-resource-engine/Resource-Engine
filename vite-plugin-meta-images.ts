@@ -11,10 +11,6 @@ export function metaImagesPlugin(): Plugin {
     name: 'vite-plugin-meta-images',
     transformIndexHtml(html) {
       const baseUrl = getDeploymentUrl();
-      if (!baseUrl) {
-        log('[meta-images] no Replit deployment domain found, skipping meta tag updates');
-        return html;
-      }
 
       // Check if opengraph image exists in public directory
       const publicDir = path.resolve(process.cwd(), 'client', 'public');
@@ -55,7 +51,7 @@ export function metaImagesPlugin(): Plugin {
   };
 }
 
-function getDeploymentUrl(): string | null {
+function getDeploymentUrl(): string {
   if (process.env.REPLIT_INTERNAL_APP_DOMAIN) {
     const url = `https://${process.env.REPLIT_INTERNAL_APP_DOMAIN}`;
     log('[meta-images] using internal app domain:', url);
@@ -68,7 +64,13 @@ function getDeploymentUrl(): string | null {
     return url;
   }
 
-  return null;
+  if (process.env.PUBLIC_APP_URL) {
+    const url = process.env.PUBLIC_APP_URL.replace(/\/$/, '');
+    log('[meta-images] using PUBLIC_APP_URL:', url);
+    return url;
+  }
+
+  return 'https://careconnectaz.com';
 }
 
 function log(...args: any[]): void {
