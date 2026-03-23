@@ -613,16 +613,7 @@ export function ContactForm() {
               </div>
             </div>
 
-            <div className="rounded-xl bg-primary/5 p-6 border border-primary/10">
-              <h3 className="mb-2 font-semibold text-foreground">How This Works</h3>
-              <ol className="text-sm leading-relaxed text-muted-foreground space-y-2 list-decimal list-inside">
-                <li>Select the directory type (Mental Health or Substance Abuse)</li>
-                <li>Choose the state where the facility is located</li>
-                <li>Search for and select the specific clinic</li>
-                <li>Select filter categories and service options to report issues about</li>
-                <li>Add a detailed description of the issue</li>
-              </ol>
-            </div>
+            {/* "How This Works" section was moved to the Home page */}
 
             <div className="rounded-xl bg-amber-50 p-6 border border-amber-100">
               <h3 className="mb-2 font-semibold text-amber-800">Data Quality</h3>

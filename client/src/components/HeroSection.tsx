@@ -4,12 +4,20 @@ import { Button } from "@/components/ui/button";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-32">
+    <section className="relative overflow-hidden bg-white">
+      {/* Background Image Setup */}
+      <div 
+        className="absolute inset-0 z-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1920&q=80')" }}
+      />
+      {/* Semi-transparent overlay to ensure text readability */}
+      <div className="absolute inset-0 z-0 bg-white/85 backdrop-blur-sm" />
+
+      <div className="relative z-10 mx-auto max-w-7xl px-6 py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-4xl text-center">
           {/* Badge */}
-          <div className="mb-8 inline-flex items-center rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5">
-            <span className="text-sm font-medium text-primary">COMMUNITY RESOURCE ENGINE</span>
+          <div className="mb-8 inline-flex items-center rounded-full border border-primary/30 bg-white/80 shadow-sm px-4 py-1.5 backdrop-blur-md">
+            <span className="text-sm font-bold text-primary tracking-wide">COMMUNITY RESOURCE ENGINE</span>
           </div>
 
           {/* Main Headline */}
