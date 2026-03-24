@@ -131,46 +131,34 @@ Message:
 ${message}
       `.trim();
 
-      // Prefer Resend if configured, otherwise fall back to SMTP (nodemailer)
-      if (process.env.RESEND_API_KEY) {
-        const { client: resend, fromEmail } = getResendClient();
-        await resend.emails.send({
-          from: `Community Resource Engine <${fromEmail}>`,
-          to: feedbackRecipient,
-          subject: `Facility Directory Feedback: ${categoryLabels[category] || "General"}`,
-          text: emailContent,
-          replyTo: email,
-        });
-      } else if (process.env.SMTP_HOST) {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587,
-          secure: process.env.SMTP_SECURE === "true",
-          auth: process.env.SMTP_USER
-            ? {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-              }
-            : undefined,
+      // Forward feedback to the admin server
+      try {
+        const adminServerUrl = process.env.ADMIN_SERVER_URL || "http://localhost:8000";
+        const adminRes = await fetch(`${adminServerUrl}/api/feedbacks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            category,
+            agencyName,
+            message,
+          }),
         });
 
-        const from = process.env.SMTP_FROM || process.env.SMTP_USER || "no-reply@example.com";
-        await transporter.sendMail({
-          from: `Community Resource Engine <${from}>`,
-          to: feedbackRecipient,
-          subject: `Facility Directory Feedback: ${categoryLabels[category] || "General"}`,
-          text: emailContent,
-          replyTo: email,
-        });
-      } else {
-        throw new Error(
-          "Email is not configured. Set RESEND_API_KEY (recommended) or SMTP_HOST/SMTP_USER/SMTP_PASS."
-        );
+        if (!adminRes.ok) {
+          throw new Error("Admin server returned an error");
+        }
+      } catch (err) {
+        console.error("Failed to forward feedback to admin server:", err);
+        return res.status(500).json({ error: "Failed to process feedback" });
       }
 
       res.json({ success: true, message: "Feedback sent successfully" });
     } catch (error) {
-      console.error("Error sending feedback email:", error);
+      console.error("Error processing feedback:", error);
       res.status(500).json({ error: "Failed to send feedback" });
     }
   });
