@@ -12,7 +12,7 @@ export function Navigation() {
     { href: "/", label: "Home" },
     { href: "/search", label: "Find Care" },
     { href: "/research", label: "Research" },
-    { href: "/contact", label: "Contact" },
+    { href: "/contact", label: "Feedback" },
   ];
 
   return (
