@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getServiceInfo as getServiceInfoFromLib } from "@/lib/facility-data";
 import { searchFacilities } from "@/lib/api";
 import { mentalHealthFilters, substanceAbuseFilters } from "@/lib/filter-data";
@@ -361,6 +362,51 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Education Services": "bg-indigo-50 text-indigo-700 border-indigo-200",
 };
 
+function getCategoryBucket(categoryName: string, directory: "mental" | "substance") {
+  // Client Attributes
+  if (["Age Groups", "Special Programs"].includes(categoryName)) return "client";
+  
+  // Excluded Attributes (Remove from frontend)
+  if (categoryName === "Smoking Policy") return "remove";
+  if (categoryName === "Hospitals") return "remove";
+  if (directory === "mental" && categoryName === "Assessment") return "remove";
+  
+  // Conditionally Routed Attributes based on Directory
+  if (categoryName === "Language Services") {
+    return directory === "substance" ? "program" : "organization";
+  }
+
+  // Program Attributes
+  if ([
+    "Treatment Approaches",
+    "Pharmacotherapies",
+    "Emergency Services",
+    "Testing",
+    "Ancillary Services",
+    "Opioid Medications",
+    "Detoxification Services",
+    "Education Services"
+  ].includes(categoryName)) {
+    return "program";
+  }
+  if (directory === "substance" && categoryName === "Assessment") return "program";
+
+  // Organization Attributes
+  if ([
+    "Type of Care",
+    "Service Setting",
+    "Facility Type",
+    "Facility Operation",
+    "Licenses/Certs",
+    "Payment Accepted",
+    "Payment Assistance"
+  ].includes(categoryName)) {
+    return "organization";
+  }
+
+  return "other";
+}
+
 interface SearchResultsProps {
   directory: "mental" | "substance";
 }
@@ -369,7 +415,6 @@ export function SearchResults({ directory }: SearchResultsProps) {
   const [location, setLocation] = useLocation();
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAllFilters, setShowAllFilters] = useState(false);
   const [state, setState] = useState("AZ");
   const [results, setResults] = useState<Facility[]>([]);
   const [totalResults, setTotalResults] = useState(0);
@@ -504,7 +549,46 @@ export function SearchResults({ directory }: SearchResultsProps) {
   };
 
   const categoryEntries = Object.entries(categoriesForDisplay).sort((a, b) => a[0].localeCompare(b[0]));
-  const visibleCategories = showAllFilters ? categoryEntries : categoryEntries.slice(0, 4);
+  
+  const clientBucket = categoryEntries.filter(([cat]) => getCategoryBucket(cat, directory) === "client");
+  const programBucket = categoryEntries.filter(([cat]) => getCategoryBucket(cat, directory) === "program");
+  const organizationBucket = categoryEntries.filter(([cat]) => getCategoryBucket(cat, directory) === "organization");
+  const otherBucket = categoryEntries.filter(([cat]) => getCategoryBucket(cat, directory) === "other");
+
+  const renderCategoryGroup = (entries: [string, any][]) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      {entries.map(([categoryName, services]) => (
+        <div key={categoryName}>
+          <div className="mb-3 flex items-center gap-2">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider truncate" title={categoryName}>
+              {categoryName}
+            </label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`About ${categoryName}`}
+                  className="inline-flex h-5 w-5 items-center justify-center flex-shrink-0 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm leading-snug">{getCategoryHelpText(categoryName)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <MultiSelectDropdown
+            label={categoryName}
+            options={services}
+            selected={selectedFilters}
+            onToggle={toggleFilter}
+            categoryColor={CATEGORY_COLORS[categoryName] || "bg-gray-50 text-gray-700 border-gray-200"}
+          />
+        </div>
+      ))}
+    </div>
+  );
 
   const totalPages = Math.ceil(totalResults / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
@@ -565,50 +649,27 @@ export function SearchResults({ directory }: SearchResultsProps) {
               <Filter className="h-5 w-5 text-primary" />
               <span className="text-sm font-semibold text-gray-900">Filter by Category & Services</span>
             </div>
-            {categoryEntries.length > 4 && (
-              <button
-                type="button"
-                onClick={() => setShowAllFilters(!showAllFilters)}
-                className="text-sm text-primary font-medium hover:underline"
-                data-testid="button-toggle-filters"
-              >
-                {showAllFilters ? "Show less" : `Show all ${categoryEntries.length} categories`}
-              </button>
-            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {visibleCategories.map(([categoryName, services]) => (
-              <div key={categoryName}>
-                <div className="mb-3 flex items-center gap-2">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {categoryName}
-                  </label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={`About ${categoryName}`}
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                      >
-                        <Info className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p className="text-sm leading-snug">{getCategoryHelpText(categoryName)}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <MultiSelectDropdown
-                  label={categoryName}
-                  options={services}
-                  selected={selectedFilters}
-                  onToggle={toggleFilter}
-                  categoryColor={CATEGORY_COLORS[categoryName] || "bg-gray-50 text-gray-700 border-gray-200"}
-                />
-              </div>
-            ))}
-          </div>
+          <Tabs defaultValue="client" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100/50 p-1 rounded-xl">
+              <TabsTrigger value="client" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Client Attributes</TabsTrigger>
+              <TabsTrigger value="program" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Program Attributes</TabsTrigger>
+              <TabsTrigger value="organization" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Organization Attributes</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="client" className="mt-0 outline-none">
+              {clientBucket.length > 0 ? renderCategoryGroup(clientBucket) : <p className="text-sm text-gray-500 py-4 text-center">No client attributes available.</p>}
+            </TabsContent>
+            
+            <TabsContent value="program" className="mt-0 outline-none">
+              {programBucket.length > 0 ? renderCategoryGroup(programBucket) : <p className="text-sm text-gray-500 py-4 text-center">No program attributes available.</p>}
+            </TabsContent>
+            
+            <TabsContent value="organization" className="mt-0 outline-none">
+              {organizationBucket.length > 0 || otherBucket.length > 0 ? renderCategoryGroup([...organizationBucket, ...otherBucket]) : <p className="text-sm text-gray-500 py-4 text-center">No organization attributes available.</p>}
+            </TabsContent>
+          </Tabs>
         </div>
 
         {selectedFilters.length > 0 && (
