@@ -1,12 +1,9 @@
-import fs from "fs";
-import path from "path";
-import zlib from "zlib";
-import { parse } from "csv-parse";
 import type {
   Facility,
   FacilitySearchParams,
   FacilitySearchResult,
 } from "@shared/types";
+import { query } from "./db";
 
 export interface IStorage {
   searchFacilities(params: FacilitySearchParams): Promise<FacilitySearchResult>;
@@ -15,36 +12,34 @@ export interface IStorage {
 
 type DirectoryType = "mental" | "substance";
 
-type FacilityRow = {
-  facility_id: string;
-  directory_type: string;
-  name1: string;
-  name2: string;
-  street1: string;
-  street2: string;
-  city: string;
-  state: string;
-  zip: string;
-  phone: string;
-  intake1: string;
-  intake2: string;
-  intake1a: string;
-  intake2a: string;
-  service_code_info: string;
-};
+// Internal caches mapped once to map normalized PG schema back to the frontend dynamically
+let facilityTypesCache: Map<number, DirectoryType> | null = null;
+let servicesIdToCodeCache: Map<number, string> | null = null;
+let servicesCodeToIdCache: Map<string, number> | null = null;
 
-type ServiceRow = {
-  facility_id: string;
-  directory_type: string;
-  code: string;
-  value: string;
-};
+async function ensureCaches() {
+  if (facilityTypesCache && servicesIdToCodeCache && servicesCodeToIdCache) return;
+
+  facilityTypesCache = new Map();
+  const typesRows = await query('SELECT id, code FROM facility_types');
+  for (const row of typesRows) {
+    const dirType = row.code === 'MH' ? 'mental' : (row.code === 'SA' ? 'substance' : row.code);
+    facilityTypesCache.set(row.id, dirType as DirectoryType);
+  }
+
+  servicesIdToCodeCache = new Map();
+  servicesCodeToIdCache = new Map();
+  const servicesRows = await query('SELECT id, code FROM services');
+  for (const row of servicesRows) {
+    servicesIdToCodeCache.set(row.id, row.code);
+    servicesCodeToIdCache.set(row.code, row.id);
+  }
+}
 
 function cleanStr(v: unknown): string {
   if (v === null || v === undefined) return "";
   const s = String(v).trim();
-  // Common BOM issue in some exports: "\ufeffname1" etc.
-  return s.replace(/^\uFEFF/, "");
+  return s.replace(/^\uFEFF/, ""); 
 }
 
 function toNull(v: unknown): string | null {
@@ -52,195 +47,121 @@ function toNull(v: unknown): string | null {
   return s.length ? s : null;
 }
 
-class CsvStorage implements IStorage {
-  private loadPromise: Promise<void> | null = null;
-
-  private facilities: Facility[] = [];
-  private facilityById = new Map<number, Facility>();
-  private directoryById = new Map<number, DirectoryType>();
-
-  // Precomputed lowercased fields for fast searching
-  private nameLowerById = new Map<number, string>();
-  private cityLowerById = new Map<number, string>();
-
-  // String interning to reduce memory for repeated codes
-  private codePool = new Map<string, string>();
-
-  private dataDir = path.join(process.cwd(), "server", "data");
-
-  private ensureLoaded(): Promise<void> {
-    if (!this.loadPromise) this.loadPromise = this.load();
-    return this.loadPromise;
+function transformRowToFacility(row: any): Facility {
+  const services: string[] = [];
+  const serviceIds = row.serviceIds || [];
+  
+  if (servicesIdToCodeCache && Array.isArray(serviceIds)) {
+    for (const id of serviceIds) {
+      const code = servicesIdToCodeCache.get(id);
+      if (code) services.push(code);
+    }
   }
 
-  private async load(): Promise<void> {
-    const facilitiesPath = path.join(this.dataDir, "facilities.csv.gz");
-    const servicesPath = path.join(this.dataDir, "facility_services.csv.gz");
+  return {
+    id: row.id,
+    directory_type: facilityTypesCache && row.facilityTypeId 
+      ? facilityTypesCache.get(row.facilityTypeId) 
+      : undefined,
+    name1: cleanStr(row.name1),
+    name2: toNull(row.name2),
+    street1: cleanStr(row.street1),
+    street2: toNull(row.street2),
+    city: cleanStr(row.city),
+    state: cleanStr(row.state),
+    zip: cleanStr(row.zip),
+    phone: cleanStr(row.phone),
+    intake1: toNull(row.intake1),
+    intake2: toNull(row.intake2),
+    intake1a: toNull(row.intake1a),
+    intake2a: toNull(row.intake2a),
+    service_code_info: toNull(row.service_code_info),
+    services,
+  };
+}
 
-    if (!fs.existsSync(facilitiesPath) || !fs.existsSync(servicesPath)) {
-      throw new Error(
-        `CSV data files not found. Expected: ${facilitiesPath} and ${servicesPath}`,
-      );
+class DatabaseStorage implements IStorage {
+  async searchFacilities(params: FacilitySearchParams): Promise<FacilitySearchResult> {
+    await ensureCaches();
+
+    const conditions: string[] = [];
+    const values: any[] = [];
+    let paramIndex = 1;
+
+    // We join facility_types to filter by directory efficiently
+    let fromClause = 'facilities f';
+    
+    if (params.directory) {
+      fromClause += ' INNER JOIN facility_types ft ON f."facilityTypeId" = ft.id';
+      const dirCode = params.directory === 'mental' ? 'MH' : (params.directory === 'substance' ? 'SA' : params.directory);
+      conditions.push(`ft.code = $${paramIndex++}`);
+      values.push(dirCode);
     }
-
-    const keyToId = new Map<string, number>(); // facility_id -> numeric id
-
-    // 1) Load facilities (small ~20k)
-    await new Promise<void>((resolve, reject) => {
-      let nextId = 1;
-      fs.createReadStream(facilitiesPath)
-        .pipe(zlib.createGunzip())
-        .pipe(
-          parse({
-            columns: true,
-            relax_column_count: true,
-            trim: true,
-          }),
-        )
-        .on("data", (row: FacilityRow) => {
-          const facilityKey = cleanStr((row as any).facility_id);
-          if (!facilityKey) return;
-
-          const dirRaw = cleanStr((row as any).directory_type).toLowerCase();
-          const directory: DirectoryType = dirRaw === "substance" ? "substance" : "mental";
-
-          const id = nextId++;
-          keyToId.set(facilityKey, id);
-
-          const name1 = cleanStr((row as any).name1);
-          const name2 = toNull((row as any).name2);
-
-          const facility: Facility = {
-            id,
-            // Expose the directory on the API object so the client can render
-            // the correct category buckets (e.g., Detoxification Services for substance).
-            directory_type: directory,
-            name1,
-            name2,
-            street1: cleanStr((row as any).street1),
-            street2: toNull((row as any).street2),
-            city: cleanStr((row as any).city),
-            state: cleanStr((row as any).state),
-            zip: cleanStr((row as any).zip),
-            phone: cleanStr((row as any).phone),
-            intake1: toNull((row as any).intake1),
-            intake2: toNull((row as any).intake2),
-            intake1a: toNull((row as any).intake1a),
-            intake2a: toNull((row as any).intake2a),
-            service_code_info: toNull((row as any).service_code_info),
-            services: [],
-          };
-
-          this.facilities.push(facility);
-          this.facilityById.set(id, facility);
-          this.directoryById.set(id, directory);
-          this.nameLowerById.set(id, (name1 + " " + (name2 ?? "")).toLowerCase());
-          this.cityLowerById.set(id, facility.city.toLowerCase());
-        })
-        .on("error", reject)
-        .on("end", () => resolve());
-    });
-
-    // 2) Load services (large ~1.4M) and attach codes to facilities
-    await new Promise<void>((resolve, reject) => {
-      fs.createReadStream(servicesPath)
-        .pipe(zlib.createGunzip())
-        .pipe(
-          parse({
-            columns: true,
-            relax_column_count: true,
-            trim: true,
-          }),
-        )
-        .on("data", (row: ServiceRow) => {
-          const facilityKey = cleanStr((row as any).facility_id);
-          const id = keyToId.get(facilityKey);
-          if (!id) return;
-
-          const codeRaw = cleanStr((row as any).code);
-          if (!codeRaw) return;
-
-          // Intern repeated code strings to reduce memory
-          let code = this.codePool.get(codeRaw);
-          if (!code) {
-            this.codePool.set(codeRaw, codeRaw);
-            code = codeRaw;
-          }
-
-          const facility = this.facilityById.get(id);
-          if (!facility) return;
-          facility.services.push(code);
-        })
-        .on("error", reject)
-        .on("end", () => resolve());
-    });
-
-    // 3) Deduplicate service codes per facility (keeps UI chips clean)
-    for (const f of this.facilities) {
-      if (f.services.length <= 1) continue;
-      // Preserve a stable-ish order while removing duplicates
-      const seen = new Set<string>();
-      const out: string[] = [];
-      for (const c of f.services) {
-        if (!seen.has(c)) {
-          seen.add(c);
-          out.push(c);
+    
+    if (params.state) {
+      conditions.push(`f.state = $${paramIndex++}`);
+      values.push(params.state.toUpperCase());
+    }
+    
+    if (params.city) {
+      conditions.push(`f.city = $${paramIndex++}`);
+      values.push(params.city.trim());
+    }
+    
+    if (params.searchQuery) {
+      const q = params.searchQuery.trim();
+      conditions.push(`(LOWER(f.name1) LIKE $${paramIndex} OR LOWER(f.city) LIKE $${paramIndex++})`);
+      values.push(`%${q.toLowerCase()}%`);
+    }
+    
+    if (params.services && params.services.length > 0 && servicesCodeToIdCache) {
+      // Find internal IDs for the requested string codes to leverage Postgres @> overlapping arrays
+      const requestedIds = [];
+      for (const code of params.services) {
+        const id = servicesCodeToIdCache.get(code);
+        if (id !== undefined) {
+          requestedIds.push(id);
         }
       }
-      f.services = out;
+      
+      if (requestedIds.length > 0) {
+        conditions.push(`f."serviceIds" @> $${paramIndex++}::int[]`);
+        values.push(requestedIds);
+      }
     }
 
-    // Helpful server-side log
-    console.log(
-      `[data] Loaded ${this.facilities.length.toLocaleString()} facilities and ${this.codePool.size} unique service codes`,
-    );
-  }
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    
+    // Fast total count query
+    const countSql = `SELECT COUNT(f.id) as total FROM ${fromClause} ${whereClause}`;
+    const countResult = await query(countSql, values);
+    const total = countResult[0]?.total || 0;
 
-  async searchFacilities(params: FacilitySearchParams): Promise<FacilitySearchResult> {
-    await this.ensureLoaded();
-
-    const state = params.state ? params.state.toUpperCase() : undefined;
-    const city = params.city ? params.city.trim() : undefined;
-    const directory = params.directory;
-    const selectedServices = params.services ?? [];
-    const q = params.searchQuery ? params.searchQuery.trim().toLowerCase() : "";
-
-    let matches = this.facilities;
-
-    if (directory) {
-      matches = matches.filter((f) => this.directoryById.get(f.id) === directory);
-    }
-    if (state) {
-      matches = matches.filter((f) => f.state === state);
-    }
-    if (city) {
-      matches = matches.filter((f) => f.city === city);
-    }
-    if (q) {
-      matches = matches.filter((f) => {
-        const nameLower = this.nameLowerById.get(f.id) || "";
-        const cityLower = this.cityLowerById.get(f.id) || "";
-        return nameLower.includes(q) || cityLower.includes(q);
-      });
-    }
-    if (selectedServices.length > 0) {
-      matches = matches.filter((f) => selectedServices.every((c) => f.services.includes(c)));
-    }
-
-    const total = matches.length;
+    // Restrict bounds
     const limit = Math.max(1, Math.min(params.limit ?? 100, 500));
     const offset = Math.max(0, params.offset ?? 0);
+    
+    const selectFields = params.directory ? 'f.*' : '*';
+    const sql = `SELECT ${selectFields} FROM ${fromClause} ${whereClause} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    const resultsArgs = [...values, limit, offset];
+    
+    const rows = await query(sql, resultsArgs);
+    const facilities = rows.map(transformRowToFacility);
 
     return {
-      total,
-      facilities: matches.slice(offset, offset + limit),
+      total: Number(total),
+      facilities,
     };
   }
 
   async getFacilityById(id: number): Promise<Facility | undefined> {
-    await this.ensureLoaded();
-    return this.facilityById.get(id);
+    await ensureCaches();
+    const rows = await query('SELECT * FROM facilities WHERE id = $1', [id]);
+    if (!rows || rows.length === 0) {
+      return undefined;
+    }
+    return transformRowToFacility(rows[0]);
   }
 }
 
-export const storage = new CsvStorage();
+export const storage = new DatabaseStorage();

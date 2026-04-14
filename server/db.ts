@@ -1,21 +1,18 @@
-import mysql from 'mysql2/promise';
+import { Pool } from 'pg';
 
-let pool: mysql.Pool | null = null;
+let pool: Pool | null = null;
 
-export function getDbPool(): mysql.Pool {
+export function getDbPool(): Pool {
   if (!pool) {
-    const databaseUrl = process.env.MYSQL_DATABASE_URL;
+    // Standardize to use either MYSQL_DATABASE_URL (for backwards compat) or DATABASE_URL
+    const databaseUrl = process.env.MYSQL_DATABASE_URL || process.env.DATABASE_URL;
     if (!databaseUrl) {
-      throw new Error('MYSQL_DATABASE_URL environment variable is not set');
+      throw new Error('DATABASE_URL environment variable is not set');
     }
 
-    pool = mysql.createPool({
-      uri: databaseUrl,
-      waitForConnections: true,
-      connectionLimit: 10,
-      queueLimit: 0,
-      enableKeepAlive: true,
-      keepAliveInitialDelay: 0,
+    pool = new Pool({
+      connectionString: databaseUrl,
+      max: 10,
     });
   }
 
@@ -24,6 +21,6 @@ export function getDbPool(): mysql.Pool {
 
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   const pool = getDbPool();
-  const [rows] = await pool.execute(sql, params);
-  return rows as T[];
+  const result = await pool.query(sql, params);
+  return result.rows as T[];
 }

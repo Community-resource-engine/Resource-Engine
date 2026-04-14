@@ -424,6 +424,13 @@ export function SearchResults({ directory }: SearchResultsProps) {
   const [error, setError] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const resultsPerPage = 10;
+  
+  // Autocomplete dropdown state
+  const [dropdownResults, setDropdownResults] = useState<Facility[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isDropdownLoading, setIsDropdownLoading] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
 
   const categoriesForDisplay = directory === "mental" ? mentalHealthFilters : substanceAbuseFilters;
 
@@ -437,6 +444,17 @@ export function SearchResults({ directory }: SearchResultsProps) {
     const newUrl = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', newUrl);
   }, [directory]);
+
+  // Handle click outside for dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -491,6 +509,48 @@ export function SearchResults({ directory }: SearchResultsProps) {
 
     performSearch();
   }, [initialLoadDone, hasSearched, currentPage]);
+
+  const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    
+    if (value.trim().length >= 2) {
+      setIsDropdownLoading(true);
+      setIsDropdownOpen(true);
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const result = await searchFacilities({
+            state,
+            searchQuery: value,
+            directory,
+            limit: 5,
+            offset: 0,
+          });
+          setDropdownResults(result.facilities);
+        } catch (err) {
+          console.error("Dropdown search failed:", err);
+          setDropdownResults([]);
+        } finally {
+          setIsDropdownLoading(false);
+        }
+      }, 300);
+    } else {
+      setDropdownResults([]);
+      setIsDropdownOpen(false);
+    }
+  };
+
+  const handleSelectFacility = (facility: Facility) => {
+    setSearchQuery(facility.name1);
+    setIsDropdownOpen(false);
+    // Auto-trigger full search immediately upon selection
+    setTimeout(() => {
+       const searchBtn = document.getElementById('search-submit-btn');
+       if (searchBtn) searchBtn.click();
+    }, 50);
+  };
 
   const toggleFilter = (code: string) => {
     setSelectedFilters((prev) =>
@@ -629,16 +689,51 @@ export function SearchResults({ directory }: SearchResultsProps) {
           </div>
           <div className="lg:col-span-9">
             <label className="block text-sm font-semibold text-gray-700 mb-3">Name or City</label>
-            <div className="relative">
+            <div className="relative" ref={inputRef}>
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchQueryChange}
+                onFocus={() => { if (searchQuery.trim().length >= 2) setIsDropdownOpen(true); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setIsDropdownOpen(false);
+                    const searchBtn = document.getElementById('search-submit-btn');
+                    if (searchBtn) searchBtn.click();
+                  }
+                }}
                 placeholder="Search by facility name or city..."
                 className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
                 data-testid="input-search"
+                autoComplete="off"
               />
+              
+              {isDropdownOpen && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg py-2 max-h-80 overflow-auto animate-in fade-in zoom-in-95 duration-200">
+                  {isDropdownLoading ? (
+                    <div className="px-4 py-4 text-sm text-gray-500 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2 text-primary" /> Searching...
+                    </div>
+                  ) : dropdownResults.length > 0 ? (
+                    dropdownResults.map((facility) => (
+                      <button
+                        key={facility.id}
+                        type="button"
+                        onClick={() => handleSelectFacility(facility)}
+                        className="w-full text-left px-4 py-3 transition-colors hover:bg-gray-50 border-b border-gray-100 last:border-0 group focus:bg-gray-50 focus:outline-none"
+                      >
+                        <div className="font-semibold text-gray-900 group-hover:text-primary transition-colors">{facility.name1}</div>
+                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {facility.city}, {facility.state}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-4 text-sm text-gray-500 text-center">No matching facilities found in {state}</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -712,6 +807,7 @@ export function SearchResults({ directory }: SearchResultsProps) {
               Reset filters
             </button>
             <button
+              id="search-submit-btn"
               type="button"
               onClick={handleSearch}
               className="inline-flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"

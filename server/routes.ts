@@ -163,5 +163,21 @@ ${message}
     }
   });
 
+  // temporary debug route
+  app.get("/api/debug", async (req, res) => {
+    try {
+      const { storage } = await import('./storage');
+      const types = await storage.getFacilityById(1); // just to initialize cache
+      
+      const { query } = await import('./db');
+      const facilityTypes = await query('SELECT * FROM facility_types');
+      const count = await query('SELECT COUNT(*) FROM facilities');
+      const single = await query('SELECT * FROM facilities LIMIT 1');
+      res.json({ facilityTypes, count, single });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message, stack: err.stack });
+    }
+  });
+
   return httpServer;
 }
