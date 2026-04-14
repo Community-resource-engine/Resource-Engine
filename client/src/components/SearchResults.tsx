@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getServiceInfo as getServiceInfoFromLib } from "@/lib/facility-data";
 import { searchFacilities } from "@/lib/api";
 import { mentalHealthFilters, substanceAbuseFilters } from "@/lib/filter-data";
@@ -361,6 +362,51 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Education Services": "bg-indigo-50 text-indigo-700 border-indigo-200",
 };
 
+function getCategoryBucket(categoryName: string, directory: "mental" | "substance") {
+  // Client Attributes
+  if (["Age Groups", "Special Programs"].includes(categoryName)) return "client";
+  
+  // Excluded Attributes (Remove from frontend)
+  if (categoryName === "Smoking Policy") return "remove";
+  if (categoryName === "Hospitals") return "remove";
+  if (directory === "mental" && categoryName === "Assessment") return "remove";
+  
+  // Conditionally Routed Attributes based on Directory
+  if (categoryName === "Language Services") {
+    return directory === "substance" ? "program" : "organization";
+  }
+
+  // Program Attributes
+  if ([
+    "Treatment Approaches",
+    "Pharmacotherapies",
+    "Emergency Services",
+    "Testing",
+    "Ancillary Services",
+    "Opioid Medications",
+    "Detoxification Services",
+    "Education Services"
+  ].includes(categoryName)) {
+    return "program";
+  }
+  if (directory === "substance" && categoryName === "Assessment") return "program";
+
+  // Organization Attributes
+  if ([
+    "Type of Care",
+    "Service Setting",
+    "Facility Type",
+    "Facility Operation",
+    "Licenses/Certs",
+    "Payment Accepted",
+    "Payment Assistance"
+  ].includes(categoryName)) {
+    return "organization";
+  }
+
+  return "other";
+}
+
 interface SearchResultsProps {
   directory: "mental" | "substance";
 }
@@ -369,7 +415,6 @@ export function SearchResults({ directory }: SearchResultsProps) {
   const [location, setLocation] = useLocation();
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAllFilters, setShowAllFilters] = useState(false);
   const [state, setState] = useState("AZ");
   const [results, setResults] = useState<Facility[]>([]);
   const [totalResults, setTotalResults] = useState(0);
@@ -379,6 +424,13 @@ export function SearchResults({ directory }: SearchResultsProps) {
   const [error, setError] = useState<string | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
   const resultsPerPage = 10;
+  
+  // Autocomplete dropdown state
+  const [dropdownResults, setDropdownResults] = useState<Facility[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isDropdownLoading, setIsDropdownLoading] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
 
   const categoriesForDisplay = directory === "mental" ? mentalHealthFilters : substanceAbuseFilters;
 
@@ -392,6 +444,17 @@ export function SearchResults({ directory }: SearchResultsProps) {
     const newUrl = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     window.history.replaceState(null, '', newUrl);
   }, [directory]);
+
+  // Handle click outside for dropdown
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -446,6 +509,48 @@ export function SearchResults({ directory }: SearchResultsProps) {
 
     performSearch();
   }, [initialLoadDone, hasSearched, currentPage]);
+
+  const handleSearchQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    
+    if (value.trim().length >= 2) {
+      setIsDropdownLoading(true);
+      setIsDropdownOpen(true);
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          const result = await searchFacilities({
+            state,
+            searchQuery: value,
+            directory,
+            limit: 5,
+            offset: 0,
+          });
+          setDropdownResults(result.facilities);
+        } catch (err) {
+          console.error("Dropdown search failed:", err);
+          setDropdownResults([]);
+        } finally {
+          setIsDropdownLoading(false);
+        }
+      }, 300);
+    } else {
+      setDropdownResults([]);
+      setIsDropdownOpen(false);
+    }
+  };
+
+  const handleSelectFacility = (facility: Facility) => {
+    setSearchQuery(facility.name1);
+    setIsDropdownOpen(false);
+    // Auto-trigger full search immediately upon selection
+    setTimeout(() => {
+       const searchBtn = document.getElementById('search-submit-btn');
+       if (searchBtn) searchBtn.click();
+    }, 50);
+  };
 
   const toggleFilter = (code: string) => {
     setSelectedFilters((prev) =>
@@ -504,7 +609,46 @@ export function SearchResults({ directory }: SearchResultsProps) {
   };
 
   const categoryEntries = Object.entries(categoriesForDisplay).sort((a, b) => a[0].localeCompare(b[0]));
-  const visibleCategories = showAllFilters ? categoryEntries : categoryEntries.slice(0, 4);
+  
+  const clientBucket = categoryEntries.filter(([cat]) => getCategoryBucket(cat, directory) === "client");
+  const programBucket = categoryEntries.filter(([cat]) => getCategoryBucket(cat, directory) === "program");
+  const organizationBucket = categoryEntries.filter(([cat]) => getCategoryBucket(cat, directory) === "organization");
+  const otherBucket = categoryEntries.filter(([cat]) => getCategoryBucket(cat, directory) === "other");
+
+  const renderCategoryGroup = (entries: [string, any][]) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      {entries.map(([categoryName, services]) => (
+        <div key={categoryName}>
+          <div className="mb-3 flex items-center gap-2">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider truncate" title={categoryName}>
+              {categoryName}
+            </label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`About ${categoryName}`}
+                  className="inline-flex h-5 w-5 items-center justify-center flex-shrink-0 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-sm leading-snug">{getCategoryHelpText(categoryName)}</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <MultiSelectDropdown
+            label={categoryName}
+            options={services}
+            selected={selectedFilters}
+            onToggle={toggleFilter}
+            categoryColor={CATEGORY_COLORS[categoryName] || "bg-gray-50 text-gray-700 border-gray-200"}
+          />
+        </div>
+      ))}
+    </div>
+  );
 
   const totalPages = Math.ceil(totalResults / resultsPerPage);
   const startIndex = (currentPage - 1) * resultsPerPage;
@@ -545,16 +689,51 @@ export function SearchResults({ directory }: SearchResultsProps) {
           </div>
           <div className="lg:col-span-9">
             <label className="block text-sm font-semibold text-gray-700 mb-3">Name or City</label>
-            <div className="relative">
+            <div className="relative" ref={inputRef}>
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchQueryChange}
+                onFocus={() => { if (searchQuery.trim().length >= 2) setIsDropdownOpen(true); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setIsDropdownOpen(false);
+                    const searchBtn = document.getElementById('search-submit-btn');
+                    if (searchBtn) searchBtn.click();
+                  }
+                }}
                 placeholder="Search by facility name or city..."
                 className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white transition-all"
                 data-testid="input-search"
+                autoComplete="off"
               />
+              
+              {isDropdownOpen && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg py-2 max-h-80 overflow-auto animate-in fade-in zoom-in-95 duration-200">
+                  {isDropdownLoading ? (
+                    <div className="px-4 py-4 text-sm text-gray-500 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin mr-2 text-primary" /> Searching...
+                    </div>
+                  ) : dropdownResults.length > 0 ? (
+                    dropdownResults.map((facility) => (
+                      <button
+                        key={facility.id}
+                        type="button"
+                        onClick={() => handleSelectFacility(facility)}
+                        className="w-full text-left px-4 py-3 transition-colors hover:bg-gray-50 border-b border-gray-100 last:border-0 group focus:bg-gray-50 focus:outline-none"
+                      >
+                        <div className="font-semibold text-gray-900 group-hover:text-primary transition-colors">{facility.name1}</div>
+                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" /> {facility.city}, {facility.state}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-4 text-sm text-gray-500 text-center">No matching facilities found in {state}</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -565,50 +744,27 @@ export function SearchResults({ directory }: SearchResultsProps) {
               <Filter className="h-5 w-5 text-primary" />
               <span className="text-sm font-semibold text-gray-900">Filter by Category & Services</span>
             </div>
-            {categoryEntries.length > 4 && (
-              <button
-                type="button"
-                onClick={() => setShowAllFilters(!showAllFilters)}
-                className="text-sm text-primary font-medium hover:underline"
-                data-testid="button-toggle-filters"
-              >
-                {showAllFilters ? "Show less" : `Show all ${categoryEntries.length} categories`}
-              </button>
-            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {visibleCategories.map(([categoryName, services]) => (
-              <div key={categoryName}>
-                <div className="mb-3 flex items-center gap-2">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {categoryName}
-                  </label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label={`About ${categoryName}`}
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                      >
-                        <Info className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p className="text-sm leading-snug">{getCategoryHelpText(categoryName)}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <MultiSelectDropdown
-                  label={categoryName}
-                  options={services}
-                  selected={selectedFilters}
-                  onToggle={toggleFilter}
-                  categoryColor={CATEGORY_COLORS[categoryName] || "bg-gray-50 text-gray-700 border-gray-200"}
-                />
-              </div>
-            ))}
-          </div>
+          <Tabs defaultValue="client" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100/50 p-1 rounded-xl">
+              <TabsTrigger value="client" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Client Attributes</TabsTrigger>
+              <TabsTrigger value="program" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Program Attributes</TabsTrigger>
+              <TabsTrigger value="organization" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Organization Attributes</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="client" className="mt-0 outline-none">
+              {clientBucket.length > 0 ? renderCategoryGroup(clientBucket) : <p className="text-sm text-gray-500 py-4 text-center">No client attributes available.</p>}
+            </TabsContent>
+            
+            <TabsContent value="program" className="mt-0 outline-none">
+              {programBucket.length > 0 ? renderCategoryGroup(programBucket) : <p className="text-sm text-gray-500 py-4 text-center">No program attributes available.</p>}
+            </TabsContent>
+            
+            <TabsContent value="organization" className="mt-0 outline-none">
+              {organizationBucket.length > 0 || otherBucket.length > 0 ? renderCategoryGroup([...organizationBucket, ...otherBucket]) : <p className="text-sm text-gray-500 py-4 text-center">No organization attributes available.</p>}
+            </TabsContent>
+          </Tabs>
         </div>
 
         {selectedFilters.length > 0 && (
@@ -651,6 +807,7 @@ export function SearchResults({ directory }: SearchResultsProps) {
               Reset filters
             </button>
             <button
+              id="search-submit-btn"
               type="button"
               onClick={handleSearch}
               className="inline-flex items-center gap-2 bg-primary text-white px-8 py-3 rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors shadow-sm"

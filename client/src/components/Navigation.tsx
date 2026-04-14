@@ -12,7 +12,7 @@ export function Navigation() {
     { href: "/", label: "Home" },
     { href: "/search", label: "Find Care" },
     { href: "/research", label: "Research" },
-    { href: "/contact", label: "Contact" },
+    { href: "/contact", label: "Feedback" },
   ];
 
   return (
@@ -43,7 +43,7 @@ export function Navigation() {
               </Link>
             ))}
             <Link href="/search">
-              <Button size="sm" className="ml-4 rounded-full px-5">
+              <Button size="default" className="ml-4 rounded-full px-6 py-2 text-base font-medium shadow-sm">
                 Get Started
               </Button>
             </Link>
@@ -72,7 +72,7 @@ export function Navigation() {
               </Link>
             ))}
             <Link href="/search">
-              <Button size="sm" className="mt-3 w-full rounded-full">
+              <Button size="default" className="mt-4 w-full rounded-full text-base py-6">
                 Get Started
               </Button>
             </Link>
