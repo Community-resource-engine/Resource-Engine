@@ -11,7 +11,7 @@ export function Navigation() {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/search", label: "Find Care" },
-    { href: "/research", label: "Research" },
+    { href: "/lab-introduction", label: "Lab Introduction" },
     { href: "/contact", label: "Feedback" },
   ];
 

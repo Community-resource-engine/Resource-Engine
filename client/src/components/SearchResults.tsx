@@ -326,7 +326,7 @@ const CATEGORY_HELP: Record<string, string> = {
   "Payment Assistance": "Financial help options (sliding scale, assistance programs).",
   "Pharmacotherapies": "Medication-based treatments offered.",
   "Smoking Policy": "Smoking/vaping policy at the facility.",
-  "Special Programs": "Programs for specific groups (veterans, adolescents, LGBTQ+, etc.).",
+  "Client Attributes": "Programs for specific groups (veterans, adolescents, LGBTQ+, etc.).",
   "Service Setting": "Where care is delivered (outpatient, inpatient, residential, telehealth, etc.).",
   "Testing": "Testing services available (drug testing, HIV/hepatitis screening, etc.).",
   "Treatment Approaches": "Therapies and treatment models used (CBT, DBT, group therapy, etc.).",
@@ -349,7 +349,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Licenses/Certs": "bg-teal-50 text-teal-700 border-teal-200",
   "Payment Accepted": "bg-sky-50 text-sky-700 border-sky-200",
   "Payment Assistance": "bg-lime-50 text-lime-700 border-lime-200",
-  "Special Programs": "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  "Client Attributes": "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
   Assessment: "bg-violet-50 text-violet-700 border-violet-200",
   Testing: "bg-orange-50 text-orange-700 border-orange-200",
   "Ancillary Services": "bg-slate-50 text-slate-700 border-slate-200",
@@ -364,17 +364,12 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 function getCategoryBucket(categoryName: string, directory: "mental" | "substance") {
   // Client Attributes
-  if (["Age Groups", "Special Programs"].includes(categoryName)) return "client";
+  if (["Age Groups", "Client Attributes", "Language Services"].includes(categoryName)) return "client";
   
   // Excluded Attributes (Remove from frontend)
   if (categoryName === "Smoking Policy") return "remove";
   if (categoryName === "Hospitals") return "remove";
   if (directory === "mental" && categoryName === "Assessment") return "remove";
-  
-  // Conditionally Routed Attributes based on Directory
-  if (categoryName === "Language Services") {
-    return directory === "substance" ? "program" : "organization";
-  }
 
   // Program Attributes
   if ([

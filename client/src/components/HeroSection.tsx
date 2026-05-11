@@ -48,10 +48,10 @@ export function HeroSection() {
                   <ArrowRight className="h-5 w-5" />
                 </button>
               </Link>
-              <Link href="/research">
+              <Link href="/lab-introduction">
                 <button className="h-14 rounded-full bg-white border border-border hover:bg-slate-50 px-8 text-base font-semibold text-foreground shadow-sm inline-flex items-center justify-center gap-2 transition-all duration-200">
                   <BarChart2 className="h-5 w-5 text-muted-foreground" />
-                  <span>View Data Insights</span>
+                  <span>View Lab Introduction</span>
                 </button>
               </Link>
             </div>

@@ -23,8 +23,8 @@ export function Footer() {
               <Link href="/search" className="text-sm text-muted-foreground hover:text-foreground cursor-pointer">
                 Search
               </Link>
-              <Link href="/research" className="text-sm text-muted-foreground hover:text-foreground cursor-pointer">
-                Research
+              <Link href="/lab-introduction" className="text-sm text-muted-foreground hover:text-foreground cursor-pointer">
+                Lab Introduction
               </Link>
             </nav>
           </div>
