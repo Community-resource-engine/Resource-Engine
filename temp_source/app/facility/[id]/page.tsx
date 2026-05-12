@@ -3,7 +3,7 @@ import { Footer } from "@/components/footer"
 import { FacilityDetail } from "@/components/facility-detail"
 
 export const metadata = {
-  title: "Facility Details | Community Resource Engine",
+  title: "Facility Details | CareConnectAZ",
   description: "View detailed information about this healthcare facility",
 }
 

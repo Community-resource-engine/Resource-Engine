@@ -21,7 +21,7 @@ export function HeroSection() {
             {/* Badge */}
             <div className="mb-8 inline-flex items-center rounded-full border border-primary/20 bg-primary/5 shadow-sm px-4 py-2">
               <span className="flex h-2 w-2 rounded-full bg-primary/80 animate-pulse mr-2" />
-              <span className="text-sm font-bold text-primary tracking-wide">ASU COMMUNITY RESOURCE ENGINE</span>
+              <span className="text-sm font-bold text-primary tracking-wide">CARECONNECTAZ: FIND BEHAVIORAL HEALTH SERVICES WHERE YOU LIVE</span>
             </div>
 
             {/* Main Headline */}

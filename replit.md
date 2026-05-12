@@ -1,4 +1,4 @@
-# Community Resource Engine
+# CareConnectAZ: Find Behavioral Health Services Where You Live
 
 ## Overview
 
