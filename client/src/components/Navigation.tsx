@@ -11,7 +11,7 @@ export function Navigation() {
   const navItems = [
     { href: "/", label: "Home" },
     { href: "/search", label: "Find Care" },
-    { href: "/research", label: "Research" },
+    { href: "/lab-introduction", label: "Lab Introduction" },
     { href: "/contact", label: "Feedback" },
   ];
 
@@ -25,7 +25,7 @@ export function Navigation() {
             <div className="flex h-9 w-9 items-center justify-center rounded bg-[#8C1D40]">
               <span className="text-xs font-bold text-white">ASU</span>
             </div>
-            <span className="text-lg font-semibold text-foreground">Community Resource Engine</span>
+            <span className="text-lg font-semibold text-foreground">CareConnectAZ</span>
           </Link>
 
           {/* Desktop Navigation */}

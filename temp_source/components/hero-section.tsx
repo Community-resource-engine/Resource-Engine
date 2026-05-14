@@ -9,7 +9,7 @@ export function HeroSection() {
         <div className="mx-auto max-w-4xl text-center">
           {/* Badge */}
           <div className="mb-8 inline-flex items-center rounded-full border border-primary/30 bg-primary/5 px-4 py-1.5">
-            <span className="text-sm font-medium text-primary">COMMUNITY RESOURCE ENGINE</span>
+            <span className="text-sm font-medium text-primary">CARECONNECTAZ: FIND BEHAVIORAL HEALTH SERVICES WHERE YOU LIVE</span>
           </div>
 
           {/* Main Headline */}

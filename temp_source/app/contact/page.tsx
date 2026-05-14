@@ -3,7 +3,7 @@ import { ContactForm } from "@/components/contact-form"
 import { Footer } from "@/components/footer"
 
 export const metadata = {
-  title: "Contact | Community Resource Engine",
+  title: "Contact | CareConnectAZ",
   description: "Submit feedback or report updates to community resource data",
 }
 

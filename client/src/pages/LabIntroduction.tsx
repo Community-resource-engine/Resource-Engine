@@ -1,13 +1,13 @@
 import { Navigation } from "@/components/Navigation";
-import { ResearchContent } from "@/components/ResearchContent";
+import { LabIntroductionContent } from "@/components/LabIntroductionContent";
 import { Footer } from "@/components/Footer";
 
-export default function Research() {
+export default function LabIntroduction() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Navigation />
       <main className="flex-1">
-        <ResearchContent />
+        <LabIntroductionContent />
       </main>
       <Footer />
     </div>

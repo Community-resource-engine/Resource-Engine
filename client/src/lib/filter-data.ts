@@ -119,7 +119,7 @@ export const mentalHealthFilters: Record<string, FilterOption[]> = {
     { code: "PA", name: "Payment assistance (check with facility for details)" },
     { code: "SS", name: "Sliding fee scale (fee is based on income and other factors)" },
   ],
-  "Special Programs": [
+  "Client Attributes": [
     { code: "TAY", name: "Young adults" },
     { code: "SE", name: "Seniors or older adults" },
     { code: "GL", name: "LGBTQ+" },
@@ -339,7 +339,7 @@ export const substanceAbuseFilters: Record<string, FilterOption[]> = {
     { code: "PA", name: "Payment assistance (check with facility for details)" },
     { code: "SS", name: "Sliding fee scale (fee is based on income and other factors)" },
   ],
-  "Special Programs": [
+  "Client Attributes": [
     { code: "AD", name: "Adolescents" },
     { code: "TAY", name: "Young adults" },
     { code: "WN", name: "Adult women" },
