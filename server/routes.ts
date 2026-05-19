@@ -2,12 +2,25 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getResendClient } from "./resend-client";
+import { getInsightsData } from "./insights";
 import nodemailer from "nodemailer";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Data insights / dashboard aggregation
+  app.get("/api/insights", async (req, res) => {
+    try {
+      const { state } = req.query;
+      const data = await getInsightsData(state as string | undefined);
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching insights:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Search facilities
   app.get("/api/facilities", async (req, res) => {
     try {
