@@ -173,13 +173,16 @@ export async function getInsightsData(state?: string): Promise<InsightsData> {
     .map(([st, data]) => ({ state: st, ...data }))
     .sort((a, b) => b.total - a.total);
 
-  // 6. Top services — unnest the serviceIds array and count occurrences
+  // 6. Service counts — unnest the serviceIds array and count occurrences for
+  //    EVERY service code present in the DB. The Filter Explorer on the
+  //    client looks up each filter item by code, so we cannot pre-filter or
+  //    truncate this list; it must cover every code that exists.
   const serviceQuery = state
     ? `SELECT unnest("serviceIds") as service_id, COUNT(*) as count
        FROM facilities WHERE state = $1
-       GROUP BY service_id ORDER BY count DESC LIMIT 50`
+       GROUP BY service_id ORDER BY count DESC`
     : `SELECT unnest("serviceIds") as service_id, COUNT(*) as count
-       FROM facilities GROUP BY service_id ORDER BY count DESC LIMIT 50`;
+       FROM facilities GROUP BY service_id ORDER BY count DESC`;
 
   const serviceRows = await query<{ service_id: number; count: string }>(
     serviceQuery,
@@ -193,17 +196,15 @@ export async function getInsightsData(state?: string): Promise<InsightsData> {
     idToCode.set(row.id, row.code);
   }
 
-  const topServices = serviceRows
-    .map((row) => {
-      const code = idToCode.get(row.service_id) || `ID_${row.service_id}`;
-      return {
-        code,
-        name: SERVICE_NAMES[code] || code,
-        count: parseInt(row.count, 10),
-        category: SERVICE_CATEGORIES[code] || "Other",
-      };
-    })
-    .filter((s) => SERVICE_NAMES[s.code]); // Only known services for clean display
+  const topServices = serviceRows.map((row) => {
+    const code = idToCode.get(row.service_id) || `ID_${row.service_id}`;
+    return {
+      code,
+      name: SERVICE_NAMES[code] || code,
+      count: parseInt(row.count, 10),
+      category: SERVICE_CATEGORIES[code] || "Other",
+    };
+  });
 
   // 7. Facilities by facility type label
   const facilityTypeQuery = state
@@ -250,7 +251,7 @@ export async function getInsightsData(state?: string): Promise<InsightsData> {
     substanceAbuseCount,
     ...(state ? { stateTotal, stateMentalHealth, stateSubstanceAbuse, stateName } : {}),
     facilitiesByState,
-    topServices: topServices.slice(0, 20),
+    topServices, // every service code with its count, sorted by count desc
     facilitiesByType,
     servicesByCategory,
   };
