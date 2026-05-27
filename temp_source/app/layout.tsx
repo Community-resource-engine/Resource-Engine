@@ -8,7 +8,7 @@ const _inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "CareWizard | Community Resource Engine",
+  title: "CareConnectAZ: Find Behavioral Health Services Where You Live",
   description:
     "Find mental health and behavioral health services across Arizona. Connecting communities with the care they need.",
   generator: "v0.app",

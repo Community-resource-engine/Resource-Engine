@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Phone, ChevronLeft, ChevronRight } from "lucide-react";
+import { Mail, Phone, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import hyungsungImage from "@/assets/hyunsung-oh.jpg";
 
 const researchAreas = [
@@ -8,6 +8,121 @@ const researchAreas = [
   "Racial/Ethnic Minorities living with Mental/Physical Chronic Illness",
   "Health Disparities during the COVID-19 Pandemic",
 ];
+
+interface ResearchGrant {
+  period: string;
+  role: string;
+  title: string;
+  agency: string;
+  totalFunding?: string;
+  opportunityTitle?: string;
+  recRidIia?: string;
+  leadingPI?: string;
+  coPIs?: string;
+  description?: string;
+  url?: string;
+}
+
+const activeGrants: ResearchGrant[] = [
+  {
+    period: "March 2026 – June 2026",
+    role: "Principal Investigator",
+    title: "Understanding AI Adoption in Social Work Education and Practice: A Mixed-Methods Study",
+    agency: "Arizona State University School of Social Work (SSW)",
+    totalFunding: "$29,718",
+    opportunityTitle: "Scholarly Opportunities for Advancing Research (SOAR)",
+    recRidIia: "In-University Grant, Not Applicable",
+  },
+  {
+    period: "October 2025 – June 2026",
+    role: "Principal Investigator",
+    title: "AI-Integrated Social Work Curriculum: A Stakeholder Driven Approach",
+    agency: "The Learning Engineering Institute, Arizona State University",
+    totalFunding: "$8,000",
+    opportunityTitle: "Learning Engineering Principled Innovation Grant Program",
+    recRidIia: "In-University Grant, Not Applicable",
+  },
+];
+
+const activeUnfunded: ResearchGrant[] = [
+  {
+    period: "January 2025 – present",
+    role: "Principal Investigator",
+    title: "CareConnectAZ.com",
+    agency: "",
+    url: "http://www.CareConnectAZ.com",
+    description: "Led the design and development of a web-based, searchable directory to address gaps in access to mental health and substance use treatment resources across Arizona and other states. The platform enables need-based searches by population served, treatment modality, and service characteristics, serving as a foundation for future evaluation and external funding.",
+  },
+  {
+    period: "August 2025 – present",
+    role: "Principal Investigator",
+    title: "Integrating AI LLMs in Social Work Education: Building Data Analytics and Business Solution Skills",
+    agency: "No external funding",
+    description: "Worked with undergraduate social work students to develop a community resource referral search engine using an AI LLM. Through this project, explored how AI can enhance professional skills in data analytics and business solutions that are directly applicable to social work practice.",
+  },
+];
+
+const completedGrants: ResearchGrant[] = [
+  {
+    period: "2021 – 2023",
+    role: "Co-Principal Investigator",
+    title: "Apoyo for Latin American Asylum-Seekers: a Pilot Study",
+    agency: "National Institutes of Health (NIH)",
+    totalFunding: "$280,432",
+    leadingPI: "Susan Pepin",
+    opportunityTitle: "The RADx-UP CDCC Rapid Research Pilot Program",
+    recRidIia: "35%/35%/35%",
+  },
+  {
+    period: "2021 – 2023",
+    role: "Co-Principal Investigator",
+    title: "Eliminating COVID-19 disparities in partnership with underserved/vulnerable transnational communities of Arizona",
+    agency: "National Institutes of Health (NIH)",
+    totalFunding: "$1,985,102",
+    leadingPI: "Flavio F. Marsiglia",
+    opportunityTitle: "NOSI: Emergency Competitive Revisions for Community-engaged COVID-19 Testing Interventions among Underserved and Vulnerable Populations – RADx-UP Phase II",
+    recRidIia: "30%/30%/30%",
+  },
+  {
+    period: "2021 – 2023",
+    role: "Co-Investigator",
+    title: "Back to ECE Safely with SAGE: Reducing COVID-19 Transmission in Hispanic and Low-income Preschoolers",
+    agency: "National Institutes of Health (NIH)",
+    totalFunding: "$2,998,548",
+    leadingPI: "Rebecca Lee",
+    opportunityTitle: "RADx-UP Return to School Diagnostic Testing Approaches",
+    recRidIia: "5%/5%/5%",
+  },
+  {
+    period: "2020 – 2024",
+    role: "Co-Principal Investigator",
+    title: "Eliminating COVID-19 disparities in Arizona in partnership with underserved/vulnerable communities",
+    agency: "National Institutes of Health (NIH)",
+    totalFunding: "$4,707,512",
+    leadingPI: "Flavio F. Marsiglia",
+    opportunityTitle: "NOSI: Limited Competition for Emergency Competitive Revisions for Community-Engaged Research on COVID-19 Testing among Underserved and/or Vulnerable Populations",
+    recRidIia: "20%/20%/20%",
+  },
+  {
+    period: "2019 – 2024",
+    role: "Co-Investigator",
+    title: "Pacific Southwest Addiction Technology Transfer Center",
+    agency: "Substance Abuse & Mental Health Services Administration (SAMHSA)",
+    totalFunding: "$450,000 (sub-award, pass through UCLA-ISAP)",
+    coPIs: "Michael Shafer (ASU); Beth Rutkowski (UCLA ISAP)",
+    recRidIia: "0%/0%/0%",
+  },
+  {
+    period: "2018 – 2020",
+    role: "Principal Investigator",
+    title: "Uncovering Functions of Social Networks Associated with Diabetes Management among Latino Patients with Type 2 Diabetes Mellitus",
+    agency: "NIH/NIMHD via Southwest Interdisciplinary Research Center (SIRC)",
+    totalFunding: "$50,000",
+    leadingPI: "Flavio F. Marsiglia (parent grant)",
+    recRidIia: "0%/0%/0%",
+  },
+];
+
 
 const education = [
   { 
@@ -149,7 +264,7 @@ const publications = [
 
 const PUBLICATIONS_PER_PAGE = 10;
 
-export function ResearchContent() {
+export function LabIntroductionContent() {
   const [currentPage, setCurrentPage] = useState(1);
   
   const totalPages = Math.ceil(publications.length / PUBLICATIONS_PER_PAGE);
@@ -159,7 +274,7 @@ export function ResearchContent() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">Research</h1>
+        <h1 className="text-2xl font-semibold text-foreground">Lab Introduction</h1>
         <p className="mt-1 text-sm text-muted-foreground">Principal investigator and research background</p>
       </div>
 
@@ -225,6 +340,81 @@ export function ResearchContent() {
               ))}
             </div>
           </section>
+
+          {/* Research Projects Section */}
+          <section className="mb-6">
+            <h3 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Active Research Projects</h3>
+
+            {/* Funded/Ongoing Grants */}
+            <div className="mb-5">
+              <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary/80 border-b border-border pb-1">Grants (Funded / Ongoing)</h4>
+              <div className="space-y-3">
+                {activeGrants.map((g, idx) => (
+                  <div key={idx} className="rounded-lg border border-border bg-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-snug text-foreground">{g.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{g.role} · {g.agency}</p>
+                        {g.totalFunding && <p className="mt-1 text-xs text-muted-foreground">Total funding: {g.totalFunding}</p>}
+                        {g.opportunityTitle && <p className="mt-0.5 text-xs italic text-muted-foreground">{g.opportunityTitle}</p>}
+                        {g.recRidIia && <p className="mt-0.5 text-xs text-muted-foreground">REC/RID/IIA: {g.recRidIia}</p>}
+                      </div>
+                      <span className="shrink-0 rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">{g.period}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Research Without External Funding */}
+            <div className="mb-5">
+              <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary/80 border-b border-border pb-1">Research Projects Without External Funding</h4>
+              <div className="space-y-3">
+                {activeUnfunded.map((g, idx) => (
+                  <div key={idx} className="rounded-lg border border-border bg-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-snug text-foreground">{g.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{g.role}{g.agency ? ` · ${g.agency}` : ""}</p>
+                        {g.url && (
+                          <a href={g.url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                            <ExternalLink className="h-3 w-3" />{g.url}
+                          </a>
+                        )}
+                        {g.description && <p className="mt-1 text-xs text-muted-foreground">{g.description}</p>}
+                      </div>
+                      <span className="shrink-0 rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">{g.period}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Completed Research Projects */}
+          <section className="mb-6">
+            <h3 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">Completed Research Projects</h3>
+            <div>
+              <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary/80 border-b border-border pb-1">Grants (Funded / Ended)</h4>
+              <div className="space-y-3">
+                {completedGrants.map((g, idx) => (
+                  <div key={idx} className="rounded-lg border border-border bg-card p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-snug text-foreground">{g.title}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{g.role}{g.leadingPI ? ` (Leading PI: ${g.leadingPI})` : ""}{g.coPIs ? ` · Co-PIs: ${g.coPIs}` : ""} · {g.agency}</p>
+                        {g.totalFunding && <p className="mt-1 text-xs text-muted-foreground">Total funding: {g.totalFunding}</p>}
+                        {g.opportunityTitle && <p className="mt-0.5 text-xs italic text-muted-foreground">{g.opportunityTitle}</p>}
+                        {g.recRidIia && <p className="mt-0.5 text-xs text-muted-foreground">REC/RID/IIA: {g.recRidIia}</p>}
+                      </div>
+                      <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{g.period}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
 
           <section>
             <div className="flex items-center justify-between mb-3">

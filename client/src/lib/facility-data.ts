@@ -24,7 +24,7 @@ export const categoryColors: Record<string, string> = {
   "Treatment Approaches": "bg-green-100 text-green-700",
   "Emergency Services": "bg-red-100 text-red-700",
   "Payment Accepted": "bg-purple-100 text-purple-700",
-  "Special Programs": "bg-pink-100 text-pink-700",
+  "Client Attributes": "bg-pink-100 text-pink-700",
   "Age Groups": "bg-orange-100 text-orange-700",
   "Language Services": "bg-yellow-100 text-yellow-800",
   "Ancillary Services": "bg-teal-100 text-teal-700",

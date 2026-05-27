@@ -77,7 +77,7 @@ npm start
 - `/search/mental-health` - Mental health facilities search
 - `/search/substance-abuse` - Substance abuse facilities search
 - `/facility/:id` - Facility details
-- `/research` - Research page
+- `/lab-introduction` - Lab Introduction page
 - `/contact` - Contact form
 
 ## API Endpoints

@@ -8,7 +8,7 @@ import DirectorySelection from "@/pages/DirectorySelection";
 import MentalHealthSearch from "@/pages/MentalHealthSearch";
 import SubstanceAbuseSearch from "@/pages/SubstanceAbuseSearch";
 import FacilityDetailPage from "@/pages/FacilityDetail";
-import Research from "@/pages/Research";
+import LabIntroduction from "@/pages/LabIntroduction";
 import Contact from "@/pages/Contact";
 import DataInsights from "@/pages/DataInsights";
 import NotFound from "@/pages/not-found";
@@ -21,7 +21,7 @@ function Router() {
       <Route path="/search/mental-health" component={MentalHealthSearch} />
       <Route path="/search/substance-abuse" component={SubstanceAbuseSearch} />
       <Route path="/facility/:id" component={FacilityDetailPage} />
-      <Route path="/research" component={Research} />
+      <Route path="/lab-introduction" component={LabIntroduction} />
       <Route path="/insights" component={DataInsights} />
       <Route path="/contact" component={Contact} />
       <Route component={NotFound} />

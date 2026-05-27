@@ -202,7 +202,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   "Licenses/Certs": "bg-teal-50 text-teal-700 border-teal-200",
   "Payment Accepted": "bg-sky-50 text-sky-700 border-sky-200",
   "Payment Assistance": "bg-lime-50 text-lime-700 border-lime-200",
-  "Special Programs": "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
+  "Client Attributes": "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200",
   "Assessment": "bg-violet-50 text-violet-700 border-violet-200",
   "Testing": "bg-orange-50 text-orange-700 border-orange-200",
   "Ancillary Services": "bg-slate-50 text-slate-700 border-slate-200",
@@ -330,7 +330,7 @@ const mentalHealthData = {
     { code: "PA", name: "Payment assistance (check with facility for details)" },
     { code: "SS", name: "Sliding fee scale (fee is based on income and other factors)" },
   ],
-  "Special Programs": [
+  "Client Attributes": [
     { code: "TAY", name: "Young adults" },
     { code: "SE", name: "Seniors or older adults" },
     { code: "GL", name: "Lesbian, gay, bisexual, transgender, or queer/questioning (LGBTQ)" },

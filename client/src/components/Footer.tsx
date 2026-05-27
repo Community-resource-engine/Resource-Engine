@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Brand Column */}
           <div>
-            <h3 className="text-lg font-semibold text-foreground">Community Resource Engine</h3>
+            <h3 className="text-lg font-semibold text-foreground">CareConnectAZ</h3>
             <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
               Empowering communities with a smarter, data-driven approach to mental health resource discovery.
             </p>
@@ -23,8 +23,8 @@ export function Footer() {
               <Link href="/search" className="text-sm text-muted-foreground hover:text-foreground cursor-pointer">
                 Search
               </Link>
-              <Link href="/research" className="text-sm text-muted-foreground hover:text-foreground cursor-pointer">
-                Research
+              <Link href="/lab-introduction" className="text-sm text-muted-foreground hover:text-foreground cursor-pointer">
+                Lab Introduction
               </Link>
             </nav>
           </div>

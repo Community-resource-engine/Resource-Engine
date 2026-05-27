@@ -3,7 +3,7 @@ import { SearchInterface } from "@/components/search-interface"
 import { Footer } from "@/components/footer"
 
 export const metadata = {
-  title: "Find Care | Community Resource Engine",
+  title: "Find Care | CareConnectAZ",
   description: "Search for mental health and behavioral health agencies in Arizona",
 }
 
