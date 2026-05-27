@@ -10,6 +10,7 @@ import SubstanceAbuseSearch from "@/pages/SubstanceAbuseSearch";
 import FacilityDetailPage from "@/pages/FacilityDetail";
 import LabIntroduction from "@/pages/LabIntroduction";
 import Contact from "@/pages/Contact";
+import DataInsights from "@/pages/DataInsights";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/search/substance-abuse" component={SubstanceAbuseSearch} />
       <Route path="/facility/:id" component={FacilityDetailPage} />
       <Route path="/lab-introduction" component={LabIntroduction} />
+      <Route path="/insights" component={DataInsights} />
       <Route path="/contact" component={Contact} />
       <Route component={NotFound} />
     </Switch>

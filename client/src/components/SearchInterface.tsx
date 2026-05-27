@@ -456,7 +456,7 @@ export function SearchInterface() {
   };
 
   const getServiceInfo = (code: string): { code: string; name: string; category: string; color: string } => {
-    const serviceInfo = getServiceInfoFromLib(code, directory);
+    const serviceInfo = getServiceInfoFromLib(code, directory ?? undefined);
     if (serviceInfo) return serviceInfo;
     return { code, name: code, category: "Unknown", color: "bg-gray-50 text-gray-700 border-gray-200" };
   };
