@@ -16,8 +16,12 @@ export interface InsightsData {
   // Facilities by state breakdown
   facilitiesByState: { state: string; total: number; mental: number; substance: number }[];
 
-  // Top services
+  // Top services (all facilities combined)
   topServices: { code: string; name: string; count: number; category: string }[];
+
+  // Top services split by directory (MH-only and SA-only)
+  topServicesMH: { code: string; name: string; count: number; category: string }[];
+  topServicesSA: { code: string; name: string; count: number; category: string }[];
 
   // Facilities by type
   facilitiesByType: { type: string; count: number }[];
@@ -206,6 +210,52 @@ export async function getInsightsData(state?: string): Promise<InsightsData> {
     };
   });
 
+  // 6b. Directory-specific service counts (MH-only and SA-only)
+  //     These join on facility_types to only count services from facilities
+  //     of the matching directory type.
+  const buildDirectoryServiceQuery = (ftCode: string) => {
+    if (state) {
+      return {
+        text: `SELECT unnest(f."serviceIds") as service_id, COUNT(*) as count
+               FROM facilities f
+               INNER JOIN facility_types ft ON f."facilityTypeId" = ft.id
+               WHERE ft.code = $1 AND f.state = $2
+               GROUP BY service_id ORDER BY count DESC`,
+        params: [ftCode, state],
+      };
+    }
+    return {
+      text: `SELECT unnest(f."serviceIds") as service_id, COUNT(*) as count
+             FROM facilities f
+             INNER JOIN facility_types ft ON f."facilityTypeId" = ft.id
+             WHERE ft.code = $1
+             GROUP BY service_id ORDER BY count DESC`,
+      params: [ftCode],
+    };
+  };
+
+  const mhServiceQ = buildDirectoryServiceQuery("MH");
+  const saServiceQ = buildDirectoryServiceQuery("SA");
+
+  const [mhServiceRows, saServiceRows] = await Promise.all([
+    query<{ service_id: number; count: string }>(mhServiceQ.text, mhServiceQ.params),
+    query<{ service_id: number; count: string }>(saServiceQ.text, saServiceQ.params),
+  ]);
+
+  const mapServiceRows = (rows: { service_id: number; count: string }[]) =>
+    rows.map((row) => {
+      const code = idToCode.get(row.service_id) || `ID_${row.service_id}`;
+      return {
+        code,
+        name: SERVICE_NAMES[code] || code,
+        count: parseInt(row.count, 10),
+        category: SERVICE_CATEGORIES[code] || "Other",
+      };
+    });
+
+  const topServicesMH = mapServiceRows(mhServiceRows);
+  const topServicesSA = mapServiceRows(saServiceRows);
+
   // 7. Facilities by facility type label
   const facilityTypeQuery = state
     ? `SELECT ft.code, COUNT(f.id) as count
@@ -252,6 +302,8 @@ export async function getInsightsData(state?: string): Promise<InsightsData> {
     ...(state ? { stateTotal, stateMentalHealth, stateSubstanceAbuse, stateName } : {}),
     facilitiesByState,
     topServices, // every service code with its count, sorted by count desc
+    topServicesMH, // service counts from MH facilities only
+    topServicesSA, // service counts from SA facilities only
     facilitiesByType,
     servicesByCategory,
   };

@@ -28,6 +28,8 @@ interface InsightsData {
   stateName?: string;
   facilitiesByState: { state: string; total: number; mental: number; substance: number }[];
   topServices: { code: string; name: string; count: number; category: string }[];
+  topServicesMH: { code: string; name: string; count: number; category: string }[];
+  topServicesSA: { code: string; name: string; count: number; category: string }[];
   facilitiesByType: { type: string; count: number }[];
   servicesByCategory: { category: string; count: number }[];
 }
@@ -239,17 +241,15 @@ function StatePicker({
 }
 
 // One filter category card. Renders bars with data labels (count + %).
-// `getDescription` is used for the visible (i) info icon tooltip.
+// Each item shows its service code as an inline badge next to the name.
 function CategoryCard({
-  category, items, totalFacilities, topServices, accent, defaultAccent, getDescription,
+  category, items, totalFacilities, topServices, accent,
 }: {
   category: string;
   items: { code: string; name: string }[];
   totalFacilities: number;
   topServices: { code: string; count: number }[];
   accent: string;
-  defaultAccent: string;
-  getDescription: (item: { code: string; name: string }) => string;
 }) {
   const maxCount = useMemo(
     () => items.reduce((m, it) => Math.max(m, topServices.find((s) => s.code === it.code)?.count ?? 0), 0) || 1,
@@ -269,24 +269,25 @@ function CategoryCard({
           const count = svc?.count ?? 0;
           const pct = totalFacilities ? (count / totalFacilities) * 100 : 0;
           const barPct = (count / maxCount) * 100;
-          const desc = getDescription(item);
           return (
             <div key={item.code} className="group">
               <div className="flex justify-between items-start text-sm mb-1.5 gap-2">
-                <span className="font-semibold text-gray-700 leading-snug flex items-start gap-1.5">
-                  <span>{item.name}</span>
-                  {desc && (
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="font-semibold text-gray-700 leading-snug flex items-center gap-2 flex-wrap">
+                    <span>{item.name}</span>
                     <span
-                      className="inline-flex items-center justify-center rounded-full w-4 h-4 text-[10px] font-bold text-white cursor-help shrink-0 mt-0.5"
-                      style={{ backgroundColor: defaultAccent }}
-                      title={desc}
-                      aria-label={`Info: ${desc}`}
+                      className="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-mono font-bold tracking-wide shrink-0"
+                      style={{
+                        backgroundColor: `${accent}12`,
+                        color: accent,
+                        border: `1px solid ${accent}30`,
+                      }}
                     >
-                      i
+                      {item.code}
                     </span>
-                  )}
-                </span>
-                <span className="font-black text-gray-900 whitespace-nowrap text-xs">
+                  </span>
+                </div>
+                <span className="font-black text-gray-900 whitespace-nowrap text-xs shrink-0 mt-0.5">
                   {count > 0 ? `${count.toLocaleString()} (${pct.toFixed(1)}%)` : "—"}
                 </span>
               </div>
@@ -488,13 +489,14 @@ export default function DataInsights() {
     const raw = directory === "mental" ? mentalHealthFilters : substanceAbuseFilters;
     const buckets: AttributeBucket[] = groupFiltersByAttribute(raw, directory);
     const accent = l2Nav === "MH" ? MAROON : GOLD;
-    const totalForPct = (data.stateTotal ?? data.totalFacilities) || 0;
+    const totalForPct = l2Nav === "MH"
+      ? (data.stateMentalHealth ?? data.mentalHealthCount) || 0
+      : (data.stateSubstanceAbuse ?? data.substanceAbuseCount) || 0;
 
-    // Description for the (i) tooltip. For SA the sheet specifically asks for
-    // info descriptions on every entity; we expose the full descriptive name
-    // (which often spells out the code) plus the code itself, for both pages.
-    const getDescription = (item: { code: string; name: string }) =>
-      `${item.name} (code: ${item.code})`;
+    // Use directory-specific service counts so data changes when switching tabs
+    const directoryServices = l2Nav === "MH"
+      ? (data.topServicesMH ?? data.topServices)
+      : (data.topServicesSA ?? data.topServices);
 
     return (
       <div className="space-y-8">
@@ -524,10 +526,8 @@ export default function DataInsights() {
                   category={c.category}
                   items={c.items}
                   totalFacilities={totalForPct}
-                  topServices={data.topServices}
+                  topServices={directoryServices}
                   accent={accent}
-                  defaultAccent={accent === MAROON ? "#8C1D40" : "#B38C22"}
-                  getDescription={getDescription}
                 />
               ))}
             </div>

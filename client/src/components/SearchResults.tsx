@@ -613,26 +613,13 @@ export function SearchResults({ directory }: SearchResultsProps) {
   const renderCategoryGroup = (entries: [string, any][]) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
       {entries.map(([categoryName, services]) => (
-        <div key={categoryName}>
-          <div className="mb-3 flex items-center gap-2">
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider truncate" title={categoryName}>
-              {categoryName}
-            </label>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={`About ${categoryName}`}
-                  className="inline-flex h-5 w-5 items-center justify-center flex-shrink-0 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                >
-                  <Info className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">
-                <p className="text-sm leading-snug">{getCategoryHelpText(categoryName)}</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
+        <div key={categoryName} className="flex flex-col gap-1 mb-4">
+          <label className="block text-xs font-semibold text-gray-800 uppercase tracking-wider truncate" title={categoryName}>
+            {categoryName}
+          </label>
+          <p className="text-[11px] leading-tight text-gray-500 mb-2">
+            {getCategoryHelpText(categoryName)}
+          </p>
           <MultiSelectDropdown
             label={categoryName}
             options={services}
