@@ -28,6 +28,7 @@ const MENTAL_HEALTH_MAP: Record<string, AttributeGroup> = {
   // Client
   "Age Groups": "Client Attributes",
   "Language Services": "Client Attributes",
+  "Client Attributes": "Client Attributes",
   // Program
   "Type of Care": "Program Attributes",
   "Service Setting": "Program Attributes",
@@ -51,6 +52,7 @@ const SUBSTANCE_ABUSE_MAP: Record<string, AttributeGroup> = {
   // Client
   "Age Groups": "Client Attributes",
   "Language Services": "Client Attributes",
+  "Client Attributes": "Client Attributes",
   // Program
   "Type of Care": "Program Attributes",
   "Service Setting": "Program Attributes",
