@@ -1,4 +1,4 @@
-import { Shield, Activity, BarChart3, ArrowRight } from "lucide-react";
+import { Shield, Activity, BarChart3, LineChart, ArrowRight } from "lucide-react";
 
 export function ValueProposition() {
   const features = [
@@ -22,6 +22,13 @@ export function ValueProposition() {
       description: "Optimized user interface for efficient searches tailored to client needs, supported by real-time Power BI dashboards on service availability.",
       color: "text-purple-600",
       bgClass: "bg-purple-50 border-purple-100",
+    },
+    {
+      icon: LineChart,
+      title: "Actionable Data Insights",
+      description: "Access comprehensive analytics that reveal mental health trends, platform usage, and community needs to drive informed decisions.",
+      color: "text-amber-600",
+      bgClass: "bg-amber-50 border-amber-100",
     },
   ];
 
@@ -58,7 +65,7 @@ export function ValueProposition() {
             {features.map((feature, idx) => (
               <div 
                 key={feature.title} 
-                className={`group rounded-2xl border border-border bg-white p-8 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${idx === 2 ? 'sm:col-span-2 sm:w-1/2 sm:mx-auto' : ''}`}
+                className="group rounded-2xl border border-border bg-white p-8 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
               >
                 <div className={`mb-6 flex h-14 w-14 items-center justify-center rounded-xl border ${feature.bgClass} group-hover:scale-110 transition-transform duration-300`}>
                   <feature.icon className={`h-7 w-7 ${feature.color}`} />
